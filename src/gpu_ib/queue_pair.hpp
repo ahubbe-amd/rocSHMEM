@@ -284,6 +284,7 @@ class QueuePair {
 
 #endif // GPUIB_IONIC
 
+  char dev_name[24];
   uint32_t qp_num{0};
   uint32_t rkey{0};
   uint32_t lkey{0};
