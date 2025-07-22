@@ -292,6 +292,7 @@ public:
 
   union ibv_gid gid;
   int gid_index;
+  int traffic_class{0};
 
 #ifdef GPUIB_BNXT
   std::vector<struct bnxt_host_qp> bnxt_qps;

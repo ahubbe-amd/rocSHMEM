@@ -317,6 +317,9 @@ void GDADevice::init_part1() {
   if ((value = getenv("ROCSHMEM_SQ_SIZE"))) {
     sq_size = atoi(value);
   }
+  if ((value = getenv("ROCSHMEM_GPUIB_TRAFFIC_CLASS"))) {
+    traffic_class = atoi(value);
+  }
 }
 
 void GDADevice::init_part2() {
@@ -1000,6 +1003,7 @@ GDADevice::RtrState GDADevice::rtr(dest_info_t* dest, uint8_t port) {
     rtr.exp_qp_attr.ah_attr.grh.dgid = dest->gid;
     rtr.exp_qp_attr.ah_attr.grh.sgid_index = gid_index;
     rtr.exp_qp_attr.ah_attr.grh.hop_limit = 1;
+    rtr.exp_qp_attr.ah_attr.grh.traffic_class = traffic_class;
   }
   rtr.exp_attr_mask |= IBV_QP_DEST_QPN | IBV_QP_RQ_PSN | IBV_QP_MAX_DEST_RD_ATOMIC | IBV_QP_MIN_RNR_TIMER;
   return rtr;
