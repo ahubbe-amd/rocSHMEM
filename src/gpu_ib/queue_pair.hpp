@@ -82,6 +82,8 @@ class QueuePair {
    */
   explicit QueuePair(struct ibv_pd* pd);
 
+  enum Collectivity { THREAD, WAVE };
+
   /**
    * @brief Create and enqueue a non-blocking put work queue entry (wqe).
    *
@@ -90,7 +92,7 @@ class QueuePair {
    * @param[in] nelems Size in bytes of data transmission.
    * @param[in] pe Destination processing element of data transmission.
    */
-  __device__ void put_nbi(void *dest, const void *source, size_t nelems, int pe);
+  __device__ void put_nbi(void *dest, const void *source, size_t nelems, int pe, Collectivity cy = THREAD);
 
   /**
    * @brief Empty all completions from the completion queue.
@@ -152,7 +154,7 @@ class QueuePair {
    * @param[in] raddr Remote address.
    * @param[in] opcode Operation to be performed.
    */
-  __device__ __attribute__((noinline)) void post_wqe_rma(int pe, int32_t size, uintptr_t *laddr, uintptr_t *raddr, uint8_t opcode);
+  __device__ __attribute__((noinline)) void post_wqe_rma(int pe, int32_t size, uintptr_t *laddr, uintptr_t *raddr, uint8_t opcode, Collectivity cy);
 
   /**
    * @brief Helper method to ring the doorbell

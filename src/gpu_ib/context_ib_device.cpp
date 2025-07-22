@@ -51,6 +51,10 @@ __device__ void *GPUIBContext::shmem_ptr(const void *dest, int pe) {
 
 __device__ void GPUIBContext::putmem(void *dest, const void *source, size_t nelems, int pe) {
   uint64_t L_offset = reinterpret_cast<char*>(dest) - base_heap[my_pe];
+#if 1
+  qps[pe].put_nbi(base_heap[pe] + L_offset, source, nelems, pe);
+  qps[pe].quiet();
+#else
   bool need_turn {true};
   uint64_t turns = __ballot(need_turn);
   while (turns) {
@@ -63,10 +67,14 @@ __device__ void GPUIBContext::putmem(void *dest, const void *source, size_t nele
     }
     turns = __ballot(need_turn);
   }
+#endif
 }
 
 __device__ void GPUIBContext::putmem_nbi(void *dest, const void *source, size_t nelems, int pe) {
   uint64_t L_offset = reinterpret_cast<char*>(dest) - base_heap[my_pe];
+#if 1
+  qps[pe].put_nbi(base_heap[pe] + L_offset, source, nelems, pe);
+#else
   bool need_turn {true};
   uint64_t turns = __ballot(need_turn);
   while (turns) {
@@ -78,21 +86,18 @@ __device__ void GPUIBContext::putmem_nbi(void *dest, const void *source, size_t 
     }
     turns = __ballot(need_turn);
   }
+#endif
 }
 
 __device__ void GPUIBContext::putmem_wave(void *dest, const void *source, size_t nelems, int pe) {
   uint64_t L_offset = reinterpret_cast<char*>(dest) - base_heap[my_pe];
-  if (is_thread_zero_in_wave()) {
-    qps[pe].put_nbi(base_heap[pe] + L_offset, source, nelems, pe);
-    qps[pe].quiet();
-  }
+  qps[pe].put_nbi(base_heap[pe] + L_offset, source, nelems, pe, QueuePair::WAVE);
+  qps[pe].quiet();
 }
 
 __device__ void GPUIBContext::putmem_nbi_wave(void *dest, const void *source, size_t nelems, int pe) {
   uint64_t L_offset = reinterpret_cast<char*>(dest) - base_heap[my_pe];
-  if (is_thread_zero_in_wave()) {
-    qps[pe].put_nbi(base_heap[pe] + L_offset, source, nelems, pe);
-  }
+  qps[pe].put_nbi(base_heap[pe] + L_offset, source, nelems, pe, QueuePair::WAVE);
 }
 
 __device__ void GPUIBContext::fence() {

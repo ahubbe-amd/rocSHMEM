@@ -375,11 +375,22 @@ __device__ void QueuePair::quiet() {
 
 #ifndef GPUIB_BNXT
 #ifdef GPUIB_IONIC
-__device__ void QueuePair::post_wqe_rma(int pe, int32_t size, uintptr_t *laddr, uintptr_t *raddr, uint8_t opcode) {
+__device__ void QueuePair::post_wqe_rma(int pe, int32_t size, uintptr_t *laddr, uintptr_t *raddr, uint8_t opcode, Collectivity cy) {
   uint64_t activemask = get_same_qp_lane_mask();
-  uint32_t num_wqes = get_active_lane_count(activemask);
   uint32_t my_logical_lane_id = get_active_lane_num(activemask);
+  uint32_t num_wqes = 1;
+  if (cy == THREAD) {
+    num_wqes = get_active_lane_count(activemask);
+  }
+
   uint32_t my_sq_prod = reserve_sq(activemask, num_wqes);
+  if (cy == WAVE) {
+    if (!is_first_active_lane(activemask)) {
+      return;
+    }
+    activemask &= activemask ^ (activemask - 1);
+  }
+
   uint32_t my_sq_pos = my_sq_prod + my_logical_lane_id;
   struct ionic_v1_wqe *wqe = &sq_buf[my_sq_pos & sq_mask];
   uint16_t wqe_flags = 0;
@@ -655,10 +666,10 @@ __device__ uint64_t QueuePair::post_wqe_amo(int pe, int32_t size, uintptr_t *rad
 /******************************************************************************
  ****************************** SHMEM INTERFACE *******************************
  *****************************************************************************/
-__device__ void QueuePair::put_nbi(void *dest, const void *source, size_t nelems, int pe) {
+__device__ void QueuePair::put_nbi(void *dest, const void *source, size_t nelems, int pe, Collectivity cy) {
   uintptr_t *src = reinterpret_cast<uintptr_t*>(const_cast<void*>(source));
   uintptr_t *dst = reinterpret_cast<uintptr_t*>(dest);
-  post_wqe_rma(pe, nelems, src, dst, GPUIB_OP_RDMA_WRITE);
+  post_wqe_rma(pe, nelems, src, dst, GPUIB_OP_RDMA_WRITE, cy);
 }
 
 __device__ int64_t QueuePair::atomic_fetch(void *dest, int64_t atomic_data, int64_t atomic_cmp, int pe, uint8_t atomic_op) {
