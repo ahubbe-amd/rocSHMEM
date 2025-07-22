@@ -191,7 +191,7 @@ __device__ void QueuePair::poll_wave_cqes(uint64_t activemask) {
         dev_name, qid, type, flag, status, msn, npg);
 #endif
     /* No other way to signal an error, so just crash. */
-    abort();
+    //abort();
   }
 
   /* Only proceed with the furthest ahead cqe to update the sq state */
