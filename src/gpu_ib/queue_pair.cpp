@@ -97,7 +97,7 @@ __device__ bool QueuePair::cq_lock_try_acquire(uint64_t activemask) {
   }
   cq_lock_val = __shfl(cq_lock_val, get_first_active_lane_id(activemask));
 
-  return (cq_lock_val == SPIN_LOCK_UNLOCKED);
+  return cq_lock_val == SPIN_LOCK_UNLOCKED;
 }
 
 __device__ void QueuePair::cq_lock_release(uint64_t activemask) {
@@ -106,15 +106,22 @@ __device__ void QueuePair::cq_lock_release(uint64_t activemask) {
   }
 }
 
-__device__ void QueuePair::sq_lock_acquire(uint64_t activemask) {
+__device__ bool QueuePair::sq_lock_try_acquire(uint64_t activemask) {
   uint32_t sq_lock_val = SPIN_LOCK_INVALID;
 
   if (is_first_active_lane(activemask)) {
-    do {
-      sq_lock_val = SPIN_LOCK_UNLOCKED;
-      __hip_atomic_compare_exchange_strong(&sq_lock, &sq_lock_val, SPIN_LOCK_LOCKED,
-                                           __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE, __HIP_MEMORY_SCOPE_AGENT);
-    } while (sq_lock_val != SPIN_LOCK_UNLOCKED);
+    sq_lock_val = SPIN_LOCK_UNLOCKED;
+    __hip_atomic_compare_exchange_strong(&sq_lock, &sq_lock_val, SPIN_LOCK_LOCKED,
+                                         __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE, __HIP_MEMORY_SCOPE_AGENT);
+  }
+  sq_lock_val = __shfl(sq_lock_val, get_first_active_lane_id(activemask));
+
+  return sq_lock_val == SPIN_LOCK_UNLOCKED;
+}
+
+__device__ void QueuePair::sq_lock_acquire(uint64_t activemask) {
+  while (!sq_lock_try_acquire(activemask)) {
+    // spin
   }
 }
 
@@ -142,15 +149,21 @@ __device__ uint32_t QueuePair::reserve_sq(uint64_t activemask, uint32_t num_wqes
 __device__ uint32_t QueuePair::commit_sq(uint64_t activemask, uint32_t my_sq_prod, uint32_t my_sq_pos, uint32_t num_wqes) {
   uint32_t dbprod = my_sq_prod + num_wqes;
 
-  sq_lock_acquire(activemask);
+  if (wqe_polling) {
+    if (sq_lock_try_acquire(activemask) && is_first_active_lane(activemask)) {
+      ring_doorbell(~0);
+    }
+  } else {
+    sq_lock_acquire(activemask);
 
-  if (is_first_active_lane(activemask) && ((sq_dbprod - dbprod) & (1u << 31))) {
-    sq_dbprod = dbprod;
+    if (is_first_active_lane(activemask) && ((sq_dbprod - dbprod) & (1u << 31))) {
+      sq_dbprod = dbprod;
 
-    ring_doorbell(dbprod);
+      ring_doorbell(dbprod);
+    }
+
+    sq_lock_release(activemask);
   }
-
-  sq_lock_release(activemask);
 
   return dbprod;
 }
@@ -257,7 +270,11 @@ __device__ void QueuePair::ring_doorbell(uint32_t pos) {
   for (int i = 0; i < 64; ++i) {
     if (__lane_id() == i) {
       __threadfence();
-      __atomic_store_n(sq_dbreg, sq_dbval | (sq_mask & pos), __ATOMIC_SEQ_CST);
+      if (wqe_polling) {
+        __atomic_store_n(sq_dbreg, sq_dbval | 0xffff, __ATOMIC_SEQ_CST);
+      } else {
+        __atomic_store_n(sq_dbreg, sq_dbval | (sq_mask & pos), __ATOMIC_SEQ_CST);
+      }
     }
   }
   __threadfence();

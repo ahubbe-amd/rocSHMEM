@@ -176,6 +176,7 @@ class QueuePair {
   __device__ bool cq_lock_try_acquire(uint64_t active_lane_mask);
   __device__ void cq_lock_release(uint64_t active_lane_mask);
 
+  __device__ bool sq_lock_try_acquire(uint64_t active_lane_mask);
   __device__ void sq_lock_acquire(uint64_t active_lane_mask);
   __device__ void sq_lock_release(uint64_t active_lane_mask);
 
@@ -227,6 +228,7 @@ class QueuePair {
   bool rma_fence{false};
 
   uint32_t inline_threshold{0};
+  bool wqe_polling{false};
 
 #elif defined(GPUIB_BNXT)
   uint64_t *dbr;

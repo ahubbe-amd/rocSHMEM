@@ -320,6 +320,11 @@ void GDADevice::init_part1() {
   if ((value = getenv("ROCSHMEM_GPUIB_TRAFFIC_CLASS"))) {
     traffic_class = atoi(value);
   }
+#ifdef GPUIB_IONIC
+  if ((value = getenv("ROCSHMEM_GPUIB_IONIC_WQE_POLLING"))) {
+    wqe_polling = !!atoi(value);
+  }
+#endif
 }
 
 void GDADevice::init_part2() {
@@ -897,6 +902,7 @@ void GDADevice::initialize_gpu_qp(QueuePair* gpu_qp, int conn_num) {
   gpu_qp->lkey = heap_mr->lkey;
   gpu_qp->rkey = heap_rkey[conn_num % num_pes];
   gpu_qp->inline_threshold = 32;
+  gpu_qp->wqe_polling = wqe_polling;
 #else // !GPUIB_IONIC
   mlx5dv_cq cq_out;
   mlx5dv_obj mlx_obj;
