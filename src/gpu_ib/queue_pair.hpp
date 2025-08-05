@@ -98,6 +98,12 @@ class QueuePair {
   __device__ void quiet();
 
   /**
+   * @brief Subsequent write requests cannot pass prior read/atomic.
+   * (Without fence, reads cannot pass writes, and writes are in-order)
+   */
+  __device__ void fence();
+
+  /**
    * @brief Create and enqueue an atomic fetch work queue entry (wqe).
    *
    * @param[in] dest Destination address for data transmission.
@@ -216,6 +222,7 @@ class QueuePair {
   uint32_t sq_dbprod{0};
   uint32_t sq_prod{0};
   uint32_t sq_msn{0};
+  bool rma_fence{false};
 
   uint32_t inline_threshold{0};
 

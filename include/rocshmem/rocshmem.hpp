@@ -344,6 +344,10 @@ __device__ ATTR_NO_INLINE void rocshmem_ctx_quiet(rocshmem_ctx_t ctx);
 
 __device__ ATTR_NO_INLINE void rocshmem_quiet();
 
+__device__ ATTR_NO_INLINE void rocshmem_ctx_fence(rocshmem_ctx_t ctx);
+
+__device__ ATTR_NO_INLINE void rocshmem_fence();
+
 /**
  * @brief Query the total number of PEs.
  *

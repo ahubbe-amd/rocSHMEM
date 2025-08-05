@@ -280,6 +280,14 @@ __device__ void QueuePair::ring_doorbell(uint64_t db_val, uint64_t my_sq_counter
 __device__ void QueuePair::quiet() {
   quiet_internal(get_same_qp_lane_mask(), sq_prod);
 }
+__device__ void QueuePair::fence() {
+  if (is_first_active_lane()) {
+    //XXX disabled:
+    //  fence has only been seen used after write, before atomic,
+    //  but that is already strictly ordered, per IB/RoCE spec.
+    //rma_fence = true;
+  }
+}
 #else // !GPUIB_IONIC
 __device__ void QueuePair::quiet() {
   constexpr size_t BROADCAST_SIZE = 1024 / __AMDGCN_WAVEFRONT_SIZE;
@@ -382,6 +390,11 @@ __device__ void QueuePair::post_wqe_rma(int pe, int32_t size, uintptr_t *laddr, 
 
   if (is_last_active_lane(activemask)) {
     wqe_flags |= swap_endian_val<uint16_t>(IONIC_V1_FLAG_SIG);
+  }
+
+  if (is_first_active_lane(activemask) && rma_fence) {
+    wqe_flags |= swap_endian_val<uint16_t>(IONIC_V1_FLAG_FENCE);
+    rma_fence = false;
   }
 
   // TODO why is this needed?
