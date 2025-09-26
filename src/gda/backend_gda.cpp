@@ -144,6 +144,9 @@ void GDABackend::read_env() {
   if ((value = getenv("ROCSHMEM_SQ_SIZE"))) {
     sq_size = atoi(value);
   }
+  if ((value = getenv("ROCSHMEM_GDA_TRAFFIC_CLASS"))) {
+    traffic_class = atoi(value);
+  }
 }
 
 void GDABackend::setup_ipc() {
@@ -859,6 +862,7 @@ void GDABackend::modify_qps_init_to_rtr() {
     attr.ah_attr.is_global      = 1;
     attr.ah_attr.grh.hop_limit  = 1;
     attr.ah_attr.sl             = 1;
+    attr.ah_attr.grh.traffic_class = traffic_class;
   }
 
   attr_mask = IBV_QP_STATE
