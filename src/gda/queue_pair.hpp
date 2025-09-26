@@ -229,7 +229,7 @@ class QueuePair {
   uint64_t *cq_dbreg{nullptr};
   uint64_t cq_dbval{0};
   uint64_t cq_mask{0};
-  struct ionic_v1_cqe *ioniq_cq_buf{nullptr};
+  struct ionic_v1_cqe *ionic_cq_buf{nullptr};
   uint32_t cq_lock{SPIN_LOCK_UNLOCKED};
   uint32_t cq_pos{0};
   uint32_t cq_dbpos{0};
