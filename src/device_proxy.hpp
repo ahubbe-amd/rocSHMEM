@@ -23,6 +23,7 @@
 #ifndef LIBRARY_SRC_DEVICE_PROXY_HPP_
 #define LIBRARY_SRC_DEVICE_PROXY_HPP_
 
+#include <assert.h>
 #include <hip/hip_runtime.h>
 
 #include <memory>

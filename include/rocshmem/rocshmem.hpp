@@ -23,6 +23,7 @@
 #ifndef LIBRARY_INCLUDE_ROCSHMEM_HPP
 #define LIBRARY_INCLUDE_ROCSHMEM_HPP
 
+#include <assert.h>
 #include <hip/hip_runtime.h>
 #include <mpi.h>
 
