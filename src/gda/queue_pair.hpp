@@ -42,7 +42,7 @@
 #include "gda/mlx5/provider_gda_mlx5.hpp"
 #include "gda/bnxt/provider_gda_bnxt.hpp"
 
-#include "containers/free_list.hpp"
+#include "containers/free_list_impl.hpp"
 #include "memory/hip_allocator.hpp"
 
 namespace rocshmem {
