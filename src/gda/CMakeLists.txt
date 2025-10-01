@@ -48,7 +48,12 @@ target_link_libraries(
     numa
 )
 
-add_subdirectory(bnxt)
+if(GDA_MLX5)
+  add_subdirectory(mlx5)
+endif()
+if(GDA_BNXT)
+  add_subdirectory(bnxt)
+endif()
 if(GDA_IONIC)
   add_subdirectory(ionic)
 endif()

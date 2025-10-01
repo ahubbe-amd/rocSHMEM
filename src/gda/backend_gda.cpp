@@ -572,6 +572,7 @@ void GDABackend::cleanup_ibv() {
   int err;
 
   if (gda_vendor == GDAVendor::BNXT) {
+#if defined(GDA_BNXT)
     CHECK_HIP(hipHostUnregister(db_region_attr.dbr));
 
     for (int i = 0; i < qps.size(); i++) {
@@ -595,6 +596,7 @@ void GDABackend::cleanup_ibv() {
 
       CHECK_HIP(hipFree(bnxt_cqs[i].buf));
     }
+#endif
   } else {
     for (int i = 0; i < qps.size(); i++) {
       err = ibv_destroy_qp(qps[i]);
@@ -630,6 +632,7 @@ void GDABackend::autodetect_dv_libs() {
   //this hardcoded init order will always prefer BNXT>IONIC>MLX5
   //if all three drivers are installed
 
+#if defined(GDA_BNXT)
   if (gda_vendor == GDAVendor::NONE) {
     ret = bnxt_dv_dl_init();
 
@@ -639,6 +642,7 @@ void GDABackend::autodetect_dv_libs() {
       DPRINTF("Initializing rocSHMEM BNXT GDA support failed\n");
     }
   }
+#endif
 
 #if defined(GDA_IONIC)
   if (gda_vendor == GDAVendor::NONE) {
@@ -652,6 +656,7 @@ void GDABackend::autodetect_dv_libs() {
   }
 #endif // defined(GDA_IONIC)
 
+#if defined(GDA_MLX5)
   if (gda_vendor == GDAVendor::NONE) {
     ret = mlx5_dv_dl_init();
 
@@ -661,6 +666,7 @@ void GDABackend::autodetect_dv_libs() {
       DPRINTF("Initializing rocSHMEM MLX5 GDA support failed\n");
     }
   }
+#endif
 
   if (gda_vendor == GDAVendor::NONE) {
     printf("Initializing rocSHMEM with IONIC, BNXT, or MLX5 GDA support failed\n");
@@ -740,8 +746,14 @@ void GDABackend::setup_gpu_qps() {
     new (&host_qps[i]) QueuePair(pd_orig, gda_vendor);
     CHECK_HIP(hipMemcpy(&gpu_qps[i], &host_qps[i], sizeof(QueuePair), hipMemcpyDefault));
 
-    if (gda_vendor == GDAVendor::BNXT) {
+    if (gda_vendor == GDAVendor::IONIC) {
+#if defined(GDA_IONIC)
+      ionic_initialize_gpu_qp(&gpu_qps[i], i);
+#endif
+    } else if (gda_vendor == GDAVendor::BNXT) {
+#if defined(GDA_BNXT)
       bnxt_initialize_gpu_qp(&gpu_qps[i], i);
+#endif
     } else {
       initialize_gpu_qp(&gpu_qps[i], i);
     }
@@ -944,12 +956,15 @@ void GDABackend::create_queues() {
   cqs.resize(resize_length);
   qps.resize(resize_length);
 
-  bnxt_cqs.resize(resize_length);
-  bnxt_qps.resize(resize_length);
-
   if (gda_vendor == GDAVendor::BNXT) {
+#if defined(GDA_BNXT)
+    bnxt_cqs.resize(resize_length);
+    bnxt_qps.resize(resize_length);
     bnxt_create_cqs(ncqes);
     bnxt_create_qps(sq_size);
+#else
+    assert(false);
+#endif
   } else {
     create_cqs(ncqes);
     create_qps(sq_size);
